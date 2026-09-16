@@ -44,6 +44,38 @@ bool furi_hal_usb_msc_is_active(void);
  * Apps should warn the user to eject from the host before stopping MSC. */
 bool furi_hal_usb_msc_is_removal_locked(void);
 
+/* ─────────────────────────────────────────────────────────────────────
+ * Virtual drives (iODD-style): present one or more image files from the SD
+ * card to the host as independent USB LUNs — a .iso as a read-only CD-ROM, a
+ * .img as a read-only or read/write disk — several at once. These reuse the
+ * same MSC interface: when no virtual LUN is set the callbacks behave exactly
+ * as the SD-card path above, so SD-over-USB is unaffected.
+ * ───────────────────────────────────────────────────────────────────── */
+
+#define FURI_HAL_USB_MSC_MAX_LUN 4
+
+typedef struct {
+    void* ctx;
+    uint32_t block_count; /* number of logical blocks */
+    uint16_t block_size; /* 512 for a disk image, 2048 for an ISO */
+    bool cdrom; /* present as a read-only CD-ROM */
+    bool writable; /* allow host writes (ignored when cdrom) */
+    char product[16]; /* SCSI INQUIRY product id */
+    int32_t (*read)(void* ctx, uint32_t lba, void* buf, uint32_t bufsize);
+    int32_t (*write)(void* ctx, uint32_t lba, const uint8_t* buf, uint32_t bufsize);
+} FuriHalUsbMscLun;
+
+/** Register (or replace) a virtual-drive LUN, 0..FURI_HAL_USB_MSC_MAX_LUN-1.
+ * Does not re-enumerate; set up every LUN then call furi_hal_usb_msc_present. */
+bool furi_hal_usb_msc_lun_set(uint8_t lun, const FuriHalUsbMscLun* cfg);
+
+/** Clear all virtual LUNs and restore the default single-LUN (SD) drive set. */
+void furi_hal_usb_msc_lun_reset(void);
+
+/** Announce `lun_count` drives to the host and force a USB re-enumeration so it
+ * re-reads the drive set. Call after configuring the LUNs. */
+void furi_hal_usb_msc_present(uint8_t lun_count);
+
 #ifdef __cplusplus
 }
 #endif

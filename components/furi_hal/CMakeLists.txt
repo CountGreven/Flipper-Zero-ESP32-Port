@@ -64,6 +64,7 @@ if(IDF_TARGET STREQUAL "esp32s3" OR IDF_TARGET STREQUAL "esp32s2")
         "furi_hal_usb_hid_tinyusb.c"
         "furi_hal_usb_tinyusb_composite.c"
         "furi_hal_usb_msc.c"
+    "msc_cdrom.c"
     )
     list(APPEND FURI_HAL_REQUIRES espressif__esp_tinyusb)
 else()

@@ -10,6 +10,8 @@
 #include "furi_hal_sd.h"
 #include "class/msc/msc.h"
 #include "class/msc/msc_device.h"
+#include "device/usbd.h"
+#include "msc_cdrom.h"
 
 #define TAG "FuriHalUsbMsc"
 
@@ -71,6 +73,66 @@ bool furi_hal_usb_msc_is_removal_locked(void) {
     return s_removal_locked;
 }
 
+/* ─── Virtual drive LUNs ─────────────────────────────────────────────── */
+
+static FuriHalUsbMscLun s_vlun[FURI_HAL_USB_MSC_MAX_LUN];
+static bool s_vlun_en[FURI_HAL_USB_MSC_MAX_LUN];
+static uint8_t s_lun_count = 1;
+
+/* The active virtual backing for a LUN, or NULL to fall back to the SD path. */
+static const FuriHalUsbMscLun* vlun(uint8_t lun) {
+    if(lun < FURI_HAL_USB_MSC_MAX_LUN && s_vlun_en[lun]) return &s_vlun[lun];
+    return NULL;
+}
+
+bool furi_hal_usb_msc_lun_set(uint8_t lun, const FuriHalUsbMscLun* cfg) {
+    if(lun >= FURI_HAL_USB_MSC_MAX_LUN || !cfg) return false;
+    s_vlun[lun] = *cfg;
+    s_vlun_en[lun] = true;
+    return true;
+}
+
+void furi_hal_usb_msc_lun_reset(void) {
+    for(int i = 0; i < FURI_HAL_USB_MSC_MAX_LUN; i++) s_vlun_en[i] = false;
+    s_lun_count = 1;
+}
+
+void furi_hal_usb_msc_present(uint8_t lun_count) {
+    if(lun_count < 1) lun_count = 1;
+    if(lun_count > FURI_HAL_USB_MSC_MAX_LUN) lun_count = FURI_HAL_USB_MSC_MAX_LUN;
+    s_lun_count = lun_count;
+    /* Force the host to re-read the drive set (get_maxlun + per-LUN INQUIRY). */
+    tud_disconnect();
+    furi_delay_ms(50);
+    tud_connect();
+}
+
+uint8_t tud_msc_get_maxlun_cb(void) {
+    return s_lun_count;
+}
+
+/* Full INQUIRY response for a virtual LUN (sets the CD-ROM device type); returns
+ * 0 for a non-virtual LUN so TinyUSB uses the SD identity via tud_msc_inquiry_cb. */
+uint32_t tud_msc_inquiry2_cb(uint8_t lun, scsi_inquiry_resp_t* resp, uint32_t bufsize) {
+    (void)bufsize;
+    const FuriHalUsbMscLun* v = vlun(lun);
+    if(!v) return 0;
+    uint8_t* b = (uint8_t*)resp;
+    if(v->cdrom) {
+        msc_cdrom_inquiry(b, "Flipper ", v->product);
+    } else {
+        b[0] = 0x00; // direct-access block device
+        b[1] = 0x80; // removable
+        b[2] = 0x02;
+        b[3] = 0x02;
+        b[4] = 31;
+        memcpy(b + 8, "Flipper ", 8);
+        memcpy(b + 16, v->product, 16);
+        memcpy(b + 32, "1.0 ", 4);
+    }
+    return sizeof(scsi_inquiry_resp_t);
+}
+
 /* ─────────────────────────────────────────────────────────────────────
  * TinyUSB MSC SCSI callbacks
  *
@@ -95,6 +157,7 @@ void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16
 }
 
 bool tud_msc_test_unit_ready_cb(uint8_t lun) {
+    if(vlun(lun)) return true; /* virtual medium is always present */
     (void)lun;
     if(!s_active) {
         /* TinyUSB auto-fills sense = NOT_READY / MEDIUM_NOT_PRESENT (the
@@ -119,6 +182,12 @@ bool tud_msc_test_unit_ready_cb(uint8_t lun) {
 }
 
 void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count, uint16_t* block_size) {
+    const FuriHalUsbMscLun* v = vlun(lun);
+    if(v) {
+        *block_count = v->block_count;
+        *block_size = v->block_size ? v->block_size : 512;
+        return;
+    }
     (void)lun;
     if(!s_active) {
         *block_count = 0;
@@ -162,6 +231,11 @@ bool tud_msc_prevent_allow_medium_removal_cb(
 }
 
 int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buffer, uint32_t bufsize) {
+    const FuriHalUsbMscLun* v = vlun(lun);
+    if(v) {
+        if(offset != 0 || !v->read) return -1;
+        return v->read(v->ctx, lba, buffer, bufsize);
+    }
     (void)lun;
     if(!s_active) return -1;
 
@@ -189,11 +263,18 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
 }
 
 bool tud_msc_is_writable_cb(uint8_t lun) {
+    const FuriHalUsbMscLun* v = vlun(lun);
+    if(v) return v->writable && !v->cdrom;
     (void)lun;
     return s_active;
 }
 
 int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize) {
+    const FuriHalUsbMscLun* v = vlun(lun);
+    if(v) {
+        if(!v->writable || v->cdrom || offset != 0 || !v->write) return -1;
+        return v->write(v->ctx, lba, buffer, bufsize);
+    }
     (void)lun;
     if(!s_active) return -1;
 
@@ -219,12 +300,17 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* 
 }
 
 int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void* buffer, uint16_t bufsize) {
+    const FuriHalUsbMscLun* v = vlun(lun);
+    if(v && v->cdrom) {
+        /* Emulate the optical-drive MMC commands (READ TOC, GET CONFIGURATION,
+         * GET EVENT STATUS, READ HEADER) a host needs to mount the ISO. */
+        return msc_cdrom_scsi(scsi_cmd, buffer, bufsize, v->block_count);
+    }
     (void)lun;
     (void)scsi_cmd;
     (void)buffer;
     (void)bufsize;
-    /* Reject all SCSI commands we don't implement explicitly above —
-     * TinyUSB falls back to standard sense for these. */
+    /* Reject commands we don't implement — TinyUSB falls back to standard sense. */
     return -1;
 }
 
