@@ -22,6 +22,7 @@
 #include <gui/icon_i.h>
 #include <furi.h>
 #include <furi_hal_power.h>
+#include <furi_hal_mic.h>
 #include <gui/gui.h>
 #include <gui/view_port.h>
 #include <gui/canvas.h>
@@ -611,6 +612,7 @@ static const struct sym_entry firmware_api_table[] = {
     { .hash = 0x538016fe, .address = (uint32_t)&message_delay_25 }, /* message_delay_25 */
     { .hash = 0x5380175c, .address = (uint32_t)&message_delay_50 }, /* message_delay_50 */
     { .hash = 0x54803eb8, .address = (uint32_t)view_commit_model }, /* view_commit_model */
+    { .hash = 0x548f601d, .address = (uint32_t)furi_hal_mic_is_active }, /* furi_hal_mic_is_active */
     { .hash = 0x54fd5631, .address = (uint32_t)subghz_protocol_blocks_crc4 }, /* subghz_protocol_blocks_crc4 */
     { .hash = 0x54fd5635, .address = (uint32_t)subghz_protocol_blocks_crc8 }, /* subghz_protocol_blocks_crc8 */
     { .hash = 0x552ecfcc, .address = (uint32_t)popup_set_icon }, /* popup_set_icon */
@@ -718,9 +720,12 @@ static const struct sym_entry firmware_api_table[] = {
     { .hash = 0x7434bbb5, .address = (uint32_t)widget_add_button_element }, /* widget_add_button_element */
     { .hash = 0x74ae802c, .address = (uint32_t)esp_wifi_scan_start }, /* esp_wifi_scan_start */
     { .hash = 0x74d7f6cb, .address = (uint32_t)furi_hal_subghz_flush_rx }, /* furi_hal_subghz_flush_rx */
+    { .hash = 0x76725794, .address = (uint32_t)furi_hal_mic_start }, /* furi_hal_mic_start */
     { .hash = 0x76b92106, .address = (uint32_t)view_port_update }, /* view_port_update */
     { .hash = 0x77202198, .address = (uint32_t)elements_multiline_text }, /* elements_multiline_text */
     { .hash = 0x776c253a, .address = (uint32_t)furi_hal_power_get_battery_remaining_capacity }, /* furi_hal_power_get_battery_remaining_capacity */
+    { .hash = 0x77f326e2, .address = (uint32_t)furi_hal_mic_read }, /* furi_hal_mic_read */
+    { .hash = 0x77f3f4ec, .address = (uint32_t)furi_hal_mic_stop }, /* furi_hal_mic_stop */
     { .hash = 0x792d988c, .address = (uint32_t)canvas_set_bitmap_mode }, /* canvas_set_bitmap_mode */
     { .hash = 0x795bf537, .address = (uint32_t)mjs_mk_undefined }, /* mjs_mk_undefined */
     { .hash = 0x79807734, .address = (uint32_t)flipper_application_alloc }, /* flipper_application_alloc */
@@ -1277,7 +1282,8 @@ static const struct sym_entry firmware_api_table[] = {
     { .hash = 0xfea5c5ed, .address = (uint32_t)subghz_devices_start_async_rx }, /* subghz_devices_start_async_rx */
     { .hash = 0xfea5c62f, .address = (uint32_t)subghz_devices_start_async_tx }, /* subghz_devices_start_async_tx */
     { .hash = 0xff7edc8f, .address = (uint32_t)strint_to_uint32 }, /* strint_to_uint32 */
-    { .hash = 0xff8760ae, .address = (uint32_t)getenv }, /* getenv */};
+    { .hash = 0xff8760ae, .address = (uint32_t)getenv }, /* getenv */
+};
 /* clang-format on */
 
 static const HashtableApiInterface firmware_api_impl = {
