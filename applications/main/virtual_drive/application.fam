@@ -1,0 +1,10 @@
+App(
+    appid="virtual_drive",
+    name="Virtual Drive",
+    apptype=FlipperAppType.MENUEXTERNAL,
+    entry_point="virtual_drive_app",
+    stack_size=4 * 1024,
+    order=70,
+    fap_category="Tools",
+    sources=["virtual_drive.c"],
+)
