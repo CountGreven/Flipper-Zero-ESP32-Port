@@ -23,6 +23,7 @@
 #include <furi.h>
 #include <furi_hal_power.h>
 #include <furi_hal_mic.h>
+#include <furi_hal_ble_scan.h>
 #include <gui/gui.h>
 #include <gui/view_port.h>
 #include <gui/canvas.h>
@@ -336,6 +337,7 @@ static const struct sym_entry firmware_api_table[] = {
     { .hash = 0x098da528, .address = (uint32_t)mf_classic_is_card_read }, /* mf_classic_is_card_read */
     { .hash = 0x099ec15c, .address = (uint32_t)&I_Lock_7x8 }, /* I_Lock_7x8 */
     { .hash = 0x09b86ac7, .address = (uint32_t)flipper_format_rewind }, /* flipper_format_rewind */
+    { .hash = 0x09cb5f6a, .address = (uint32_t)furi_hal_ble_scan_stop }, /* furi_hal_ble_scan_stop */
     { .hash = 0x09d161df, .address = (uint32_t)mbedtls_des3_free }, /* mbedtls_des3_free */
     { .hash = 0x09d2f691, .address = (uint32_t)mbedtls_des3_init }, /* mbedtls_des3_init */
     { .hash = 0x09f02023, .address = (uint32_t)furi_hal_usb_unlock }, /* furi_hal_usb_unlock */
@@ -553,6 +555,7 @@ static const struct sym_entry firmware_api_table[] = {
     { .hash = 0x41fb8b83, .address = (uint32_t)mbedtls_des_crypt_cbc }, /* mbedtls_des_crypt_cbc */
     { .hash = 0x41fb9425, .address = (uint32_t)mbedtls_des_crypt_ecb }, /* mbedtls_des_crypt_ecb */
     { .hash = 0x420dff73, .address = (uint32_t)mf_classic_poller_sync_auth }, /* mf_classic_poller_sync_auth */
+    { .hash = 0x4211358b, .address = (uint32_t)furi_hal_ble_scan_clear }, /* furi_hal_ble_scan_clear */
     { .hash = 0x42170b5d, .address = (uint32_t)mf_classic_poller_sync_read }, /* mf_classic_poller_sync_read */
     { .hash = 0x42200e72, .address = (uint32_t)popup_get_view }, /* popup_get_view */
     { .hash = 0x42714df3, .address = (uint32_t)furi_hal_power_get_battery_full_capacity }, /* furi_hal_power_get_battery_full_capacity */
@@ -561,6 +564,7 @@ static const struct sym_entry firmware_api_table[] = {
     { .hash = 0x42943d48, .address = (uint32_t)view_port_draw_callback_set }, /* view_port_draw_callback_set */
     { .hash = 0x42d0c164, .address = (uint32_t)view_set_draw_callback }, /* view_set_draw_callback */
     { .hash = 0x42d9075a, .address = (uint32_t)flipper_format_write_string_cstr }, /* flipper_format_write_string_cstr */
+    { .hash = 0x433711d2, .address = (uint32_t)furi_hal_ble_scan_start }, /* furi_hal_ble_scan_start */
     { .hash = 0x43492935, .address = (uint32_t)esp_netif_init }, /* esp_netif_init */
     { .hash = 0x43aa7f43, .address = (uint32_t)furi_hal_spi_acquire }, /* furi_hal_spi_acquire */
     { .hash = 0x43e3a6c1, .address = (uint32_t)subghz_protocol_blocks_get_hash_data }, /* subghz_protocol_blocks_get_hash_data */
@@ -1057,6 +1061,7 @@ static const struct sym_entry firmware_api_table[] = {
     { .hash = 0xc9e52bce, .address = (uint32_t)mjs_get }, /* mjs_get */
     { .hash = 0xc9e55022, .address = (uint32_t)mjs_own }, /* mjs_own */
     { .hash = 0xc9e55eda, .address = (uint32_t)mjs_set }, /* mjs_set */
+    { .hash = 0xc9fe32c4, .address = (uint32_t)furi_hal_ble_scan_get }, /* furi_hal_ble_scan_get */
     { .hash = 0xca45f781, .address = (uint32_t)nfc_poller_get_data }, /* nfc_poller_get_data */
     { .hash = 0xca4a6509, .address = (uint32_t)mjs_is_boolean }, /* mjs_is_boolean */
     { .hash = 0xca5e25dc, .address = (uint32_t)dir_walk_alloc }, /* dir_walk_alloc */
